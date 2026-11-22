@@ -22,16 +22,37 @@ public partial class App : System.Windows.Application
         "EZsound",
         "debug.log");
 
+    private static readonly string OldLogFile = System.IO.Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "EZsound",
+        "debug.old.log");
+
+    private const long MaxLogSizeBytes = 1024 * 1024; // 1 MB
+    private static readonly object LogLock = new();
+
     public static void Log(string message)
     {
         try
         {
-            var dir = System.IO.Path.GetDirectoryName(LogFile);
-            if (!string.IsNullOrEmpty(dir) && !System.IO.Directory.Exists(dir))
+            lock (LogLock)
             {
-                System.IO.Directory.CreateDirectory(dir);
+                var dir = System.IO.Path.GetDirectoryName(LogFile);
+                if (!string.IsNullOrEmpty(dir) && !System.IO.Directory.Exists(dir))
+                {
+                    System.IO.Directory.CreateDirectory(dir);
+                }
+
+                if (System.IO.File.Exists(LogFile))
+                {
+                    var fileInfo = new System.IO.FileInfo(LogFile);
+                    if (fileInfo.Length > MaxLogSizeBytes)
+                    {
+                        System.IO.File.Move(LogFile, OldLogFile, overwrite: true);
+                    }
+                }
+
+                System.IO.File.AppendAllText(LogFile, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}{Environment.NewLine}");
             }
-            System.IO.File.AppendAllText(LogFile, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}{Environment.NewLine}");
         }
         catch
         {
@@ -164,6 +185,7 @@ public partial class App : System.Windows.Application
     {
         Log($"[App_DispatcherUnhandledException] {e.Exception}");
         Debug.WriteLine($"[EZsound] Unhandled UI exception: {e.Exception}");
+        // Keep e.Handled = true so an unexpected UI exception does not terminate the background mixer or overlay.
         e.Handled = true;
     }
 
