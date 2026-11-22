@@ -116,6 +116,7 @@ public sealed class HotkeyService : IHotkeyService
 
     private sealed class HotkeyWindow : NativeWindow, IDisposable
     {
+        private static readonly IntPtr HwndMessage = (IntPtr)(-3);
         private readonly Action _onHotkeyPressed;
 
         public HotkeyWindow(Action onHotkeyPressed)
@@ -123,7 +124,8 @@ public sealed class HotkeyService : IHotkeyService
             _onHotkeyPressed = onHotkeyPressed;
             CreateHandle(new CreateParams
             {
-                Caption = "EZsound_HotkeyListener"
+                Caption = "EZsound_HotkeyListener",
+                Parent = HwndMessage
             });
         }
 
