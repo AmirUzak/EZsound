@@ -1,0 +1,492 @@
+<Window x:Class="EZsound.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:EZsound.ViewModels"
+        xmlns:conv="clr-namespace:EZsound.Converters"
+        xmlns:views="clr-namespace:EZsound.Views"
+        Title="EZsound"
+        Icon="pack://application:,,,/Resources/app.ico"
+        Width="500" Height="640"
+        MinWidth="430" MinHeight="480"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="CanResizeWithGrip"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI Variable, Segoe UI, -apple-system, sans-serif"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        RenderOptions.ClearTypeHint="Enabled">
+
+    <Window.Resources>
+        <conv:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+        <conv:MuteToOpacityConverter x:Key="MuteToOpacity" />
+    </Window.Resources>
+
+    <!-- Main Window Outer Frame with Fluent Dark background & subtle drop shadow -->
+    <Border CornerRadius="14"
+            Background="{StaticResource WindowBackgroundBrush}"
+            BorderBrush="{StaticResource BorderBrush}"
+            BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="28"
+                              ShadowDepth="4"
+                              Opacity="0.65"
+                              Color="#000000" />
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" /> <!-- 1. Custom Title Bar -->
+                <RowDefinition Height="Auto" /> <!-- 2. Top Bar (Master + Actions) -->
+                <RowDefinition Height="*" />    <!-- 3. Applications List -->
+                <RowDefinition Height="Auto" /> <!-- 4. Audio Visualizer -->
+                <RowDefinition Height="Auto" /> <!-- 5. Footer -->
+            </Grid.RowDefinitions>
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 1. CUSTOM TITLE BAR (DRAGGABLE)
+                 ═══════════════════════════════════════════════════════════ -->
+            <Border Grid.Row="0"
+                    Background="{StaticResource HeaderBackgroundBrush}"
+                    CornerRadius="14,14,0,0"
+                    Padding="14,8,8,8"
+                    MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" /> <!-- Equalizer Icon & Title -->
+                        <ColumnDefinition Width="*" />    <!-- Empty space for dragging -->
+                        <ColumnDefinition Width="Auto" /> <!-- Window Controls -->
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Title & Logo -->
+                    <StackPanel Grid.Column="0"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <!-- Official EZsound App Icon Badge -->
+                        <Border Width="26" Height="26"
+                                CornerRadius="6"
+                                Background="{StaticResource TopBarCardBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                Margin="0,0,8,0"
+                                ClipToBounds="True">
+                            <Image Source="pack://application:,,,/Resources/app.png"
+                                   Width="24" Height="24"
+                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                        </Border>
+
+                        <TextBlock Text="EZsound"
+                                   FontSize="13"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource PrimaryTextBrush}"
+                                   VerticalAlignment="Center" />
+
+                        <!-- Hotkey Badge -->
+                        <Border Background="{StaticResource TopBarCardBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="5,1"
+                                Margin="8,0,0,0"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="Ctrl + Shift + M"
+                                       FontSize="9"
+                                       FontWeight="Medium"
+                                       Foreground="{StaticResource SecondaryTextBrush}" />
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Window Control Buttons (Minimize, Maximize, Close) -->
+                    <StackPanel Grid.Column="2"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <!-- Pin (Always on top) -->
+                        <Button Style="{StaticResource PinButtonStyle}"
+                                x:Name="PinButton"
+                                Content="&#xE718;"
+                                ToolTip="Always on Top"
+                                Click="PinButton_Click"
+                                Margin="0,0,2,0" />
+
+                        <!-- Minimize Button -->
+                        <Button Style="{StaticResource TitleBarButtonStyle}"
+                                Content="&#xE921;"
+                                ToolTip="Minimize"
+                                Click="MinimizeButton_Click"
+                                Margin="0,0,2,0" />
+
+                        <!-- Maximize / Restore Button -->
+                        <Button Style="{StaticResource TitleBarButtonStyle}"
+                                Content="&#xE922;"
+                                ToolTip="Maximize / Restore"
+                                Click="MaximizeButton_Click"
+                                Margin="0,0,2,0" />
+
+                        <!-- Close Button -->
+                        <Button Style="{StaticResource CloseButtonStyle}"
+                                Content="&#xE8BB;"
+                                ToolTip="Close (Hide to Tray)"
+                                Click="CloseButton_Click" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 2. TOP BAR (MASTER VOLUME CAPSULE + ACTION BUTTONS)
+                 ═══════════════════════════════════════════════════════════ -->
+            <Grid Grid.Row="1" Margin="14,4,14,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />    <!-- Master Volume Capsule -->
+                    <ColumnDefinition Width="Auto" /> <!-- Action Buttons on right -->
+                </Grid.ColumnDefinitions>
+
+                <!-- Left Block: Master Volume Capsule -->
+                <Border Grid.Column="0"
+                        Background="{StaticResource TopBarCardBrush}"
+                        BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="12,7"
+                        Margin="0,0,10,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" /> <!-- Speaker Icon -->
+                            <ColumnDefinition Width="*" />    <!-- Master Slider -->
+                            <ColumnDefinition Width="38" />   <!-- Volume % -->
+                            <ColumnDefinition Width="Auto" /> <!-- Mute Button -->
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Speaker Icon -->
+                        <TextBlock Grid.Column="0"
+                                   Text="&#xE767;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="14"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,10,0" />
+
+                        <!-- Master Slider -->
+                        <Slider Grid.Column="1"
+                                Style="{StaticResource MasterSliderStyle}"
+                                Value="{Binding MasterVolume.VolumePercent, Mode=TwoWay}"
+                                VerticalAlignment="Center"
+                                Margin="0,0,8,0" />
+
+                        <!-- Volume % -->
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding MasterVolume.VolumeText}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   VerticalAlignment="Center"
+                                   TextAlignment="Right"
+                                   Margin="0,0,8,0" />
+
+                        <!-- Mute Button -->
+                        <Button Grid.Column="3"
+                                Style="{StaticResource MuteButtonStyle}"
+                                Command="{Binding MasterVolume.ToggleMuteCommand}"
+                                ToolTip="Mute Master Audio"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="{Binding MasterVolume.MuteIcon}"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="12"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MasterVolume.IsMuted}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- Right Block: Two Dark Action Buttons -->
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center">
+                    <!-- Button «Горячие клавиши» -->
+                    <Button Style="{StaticResource TopBarButtonStyle}"
+                            Command="{Binding ToggleOverlayCommand}"
+                            ToolTip="Глобальная горячая клавиша: Ctrl + Shift + M"
+                            Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE765;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="13"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,6,0" />
+                            <TextBlock Text="Горячие клавиши"
+                                       FontSize="11"
+                                       FontWeight="Medium"
+                                       Foreground="{StaticResource PrimaryTextBrush}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Button «Оверлей в игре» -->
+                    <Button Style="{StaticResource TopBarButtonStyle}"
+                            Command="{Binding ToggleOverlayCommand}"
+                            ToolTip="Открыть плавающий игровой оверлей (Ctrl + Shift + M)">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xED35;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="13"
+                                       Foreground="{StaticResource AccentLightBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,6,0" />
+                            <TextBlock Text="Оверлей в игре"
+                                       FontSize="11"
+                                       FontWeight="Medium"
+                                       Foreground="{StaticResource PrimaryTextBrush}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 3. APPLICATIONS LIST
+                 ═══════════════════════════════════════════════════════════ -->
+            <Grid Grid.Row="2" Margin="14,0,14,6">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" /> <!-- List Header -->
+                    <RowDefinition Height="*" />    <!-- Scrollable Items -->
+                </Grid.RowDefinitions>
+
+                <!-- List Header (Title + Active Count Badge) -->
+                <Grid Grid.Row="0" Margin="2,0,2,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="Приложения"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource SecondaryTextBrush}"
+                               VerticalAlignment="Center" />
+
+                    <!-- Active Count Badge -->
+                    <Border Grid.Column="1"
+                            Background="{StaticResource TopBarCardBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="5"
+                            Padding="7,2">
+                        <TextBlock FontSize="10"
+                                   FontWeight="Medium"
+                                   Foreground="{StaticResource SecondaryTextBrush}">
+                            <Run Text="{Binding SessionCount, Mode=OneWay}" />
+                            <Run Text="активных" />
+                        </TextBlock>
+                    </Border>
+                </Grid>
+
+                <!-- Sessions List -->
+                <ScrollViewer Grid.Row="1"
+                              Style="{StaticResource ModernScrollViewer}"
+                              Visibility="{Binding HasSessions, Converter={StaticResource BoolToVisibility}}">
+                    <ItemsControl ItemsSource="{Binding Sessions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:AudioSessionViewModel}">
+                                <!-- Application Card with Fluent Styling -->
+                                <Border Style="{StaticResource AppCardStyle}"
+                                        Opacity="{Binding IsMuted, Converter={StaticResource MuteToOpacity}}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" /> <!-- 1. Icon (32x32) -->
+                                            <ColumnDefinition Width="120" />  <!-- 2. App Name (fixed width) -->
+                                            <ColumnDefinition Width="*" />    <!-- 3. Volume Slider -->
+                                            <ColumnDefinition Width="40" />   <!-- 4. Percentage -->
+                                            <ColumnDefinition Width="Auto" /> <!-- 5. Mute Button -->
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- 1. App Icon: 32x32px with rounded border -->
+                                        <Border Grid.Column="0"
+                                                Width="32" Height="32"
+                                                CornerRadius="8"
+                                                Background="{StaticResource TopBarCardBrush}"
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1"
+                                                Margin="0,0,10,0"
+                                                ClipToBounds="True">
+                                            <Image Source="{Binding Icon}"
+                                                   Width="22" Height="22"
+                                                   RenderOptions.BitmapScalingMode="HighQuality"
+                                                   VerticalAlignment="Center"
+                                                   HorizontalAlignment="Center" />
+                                        </Border>
+
+                                        <!-- 2. App Name (White semi-bold, fixed width so sliders align) -->
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding DisplayName}"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource PrimaryTextBrush}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,10,0" />
+
+                                        <!-- 3. Volume Slider (Cyan to Purple gradient) -->
+                                        <Slider Grid.Column="2"
+                                                Style="{StaticResource ModernSliderStyle}"
+                                                Value="{Binding VolumePercent, Mode=TwoWay}"
+                                                VerticalAlignment="Center"
+                                                Margin="0,0,8,0" />
+
+                                        <!-- 4. Percentage (#94A3B8 muted grey) -->
+                                        <TextBlock Grid.Column="3"
+                                                   Text="{Binding VolumeText}"
+                                                   FontSize="11"
+                                                   FontWeight="Medium"
+                                                   Foreground="{StaticResource SecondaryTextBrush}"
+                                                   VerticalAlignment="Center"
+                                                   TextAlignment="Right"
+                                                   Margin="0,0,8,0" />
+
+                                        <!-- 5. Mute Button (highlights red when muted) -->
+                                        <Button Grid.Column="4"
+                                                Style="{StaticResource MuteButtonStyle}"
+                                                Command="{Binding ToggleMuteCommand}"
+                                                ToolTip="Mute Application"
+                                                VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding MuteIcon}"
+                                                       FontFamily="Segoe MDL2 Assets"
+                                                       FontSize="12"
+                                                       HorizontalAlignment="Center"
+                                                       VerticalAlignment="Center">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsMuted}" Value="True">
+                                                                <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!-- Empty State (No Active Audio Sessions) -->
+                <Border Grid.Row="1"
+                        Visibility="{Binding HasSessions, Converter={StaticResource BoolToVisibility}, ConverterParameter=Invert}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Padding="24">
+                    <StackPanel HorizontalAlignment="Center">
+                        <TextBlock Text="&#xE7ED;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="32"
+                                   Foreground="{StaticResource DimTextBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,10"
+                                   Opacity="0.7" />
+                        <TextBlock Text="Нет активных аудиоприложений"
+                                   FontSize="13"
+                                   FontWeight="Medium"
+                                   Foreground="{StaticResource DimTextBrush}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="Запустите игру или плеер, чтобы управлять громкостью"
+                                   FontSize="11"
+                                   Foreground="{StaticResource DimTextBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,4,0,0"
+                                   Opacity="0.6" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 4. AUDIO VISUALIZER (EQUALIZER BARS WITH MIRROR REFLECTION)
+                 ═══════════════════════════════════════════════════════════ -->
+            <views:MasterWaveVisualizer Grid.Row="3"
+                                       Height="48"
+                                       CaptureService="{Binding AudioCapture}"
+                                       Visibility="{Binding IsVisualizerEnabled, Converter={StaticResource BoolToVisibility}}"
+                                       Margin="14,2,14,8" />
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 5. FOOTER (DIVIDER + STATUS TEXT + TRAY INDICATOR)
+                 ═══════════════════════════════════════════════════════════ -->
+            <Border Grid.Row="4"
+                    BorderThickness="0,1,0,0"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    Background="{StaticResource HeaderBackgroundBrush}"
+                    CornerRadius="0,0,14,14"
+                    Padding="16,8,14,8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left: Background Status Info -->
+                    <StackPanel Grid.Column="0"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <!-- Tiny Pulse Indicator -->
+                        <Ellipse Width="6" Height="6"
+                                 Fill="{StaticResource ActiveBrush}"
+                                 Margin="0,0,8,0"
+                                 VerticalAlignment="Center" />
+                        <TextBlock Text="EZsound работает в фоновом режиме"
+                                   FontSize="11"
+                                   Foreground="{StaticResource DimTextBrush}"
+                                   VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <!-- Right: Tray Indicator Button -->
+                    <Border Grid.Column="1"
+                            Background="{StaticResource TopBarCardBrush}"
+                            BorderBrush="{StaticResource BorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            Padding="8,3"
+                            Cursor="Hand"
+                            ToolTip="Свернуть в системный трей"
+                            MouseLeftButtonDown="TrayIndicator_Click">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE754;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="11"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       Margin="0,0,5,0"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="Tray"
+                                       FontSize="11"
+                                       FontWeight="Medium"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Resize Grip -->
+            <ResizeGrip Grid.Row="4"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom"
+                        Visibility="Collapsed" />
+        </Grid>
+    </Border>
+</Window>

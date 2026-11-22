@@ -1,0 +1,2 @@
+d:\EZsound\publish-single\EZsound.pdb
+d:\EZsound\publish-single\EZsound.exe
