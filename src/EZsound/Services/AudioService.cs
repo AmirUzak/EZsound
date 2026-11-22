@@ -81,7 +81,10 @@ public sealed class AudioService : IAudioService
                 {
                     kvp.Value.UnRegisterEventClient(client);
                 }
-                catch { }
+                catch
+                {
+                    // Expected: COM session may already be dead or disconnected during device cleanup.
+                }
             }
         }
         _sessionControls.Clear();
@@ -93,13 +96,19 @@ public sealed class AudioService : IAudioService
             {
                 _sessionManager.OnSessionCreated -= SessionManager_OnSessionCreated;
             }
-            catch { }
+            catch
+            {
+                // Expected: Session manager may already be disposed or invalidated.
+            }
 
             try
             {
                 _sessionManager.Dispose();
             }
-            catch { }
+            catch
+            {
+                // Expected: COM release may throw if device was unplugged.
+            }
 
             _sessionManager = null;
         }
@@ -110,7 +119,10 @@ public sealed class AudioService : IAudioService
             {
                 _defaultDevice.Dispose();
             }
-            catch { }
+            catch
+            {
+                // Expected: Device may already be invalidated or disconnected.
+            }
             _defaultDevice = null;
         }
     }
@@ -178,7 +190,14 @@ public sealed class AudioService : IAudioService
                     {
                         if (_sessionEventClients.TryGetValue(deadId, out var client))
                         {
-                            try { deadSession.UnRegisterEventClient(client); } catch { }
+                            try 
+                            { 
+                                deadSession.UnRegisterEventClient(client); 
+                            } 
+                            catch 
+                            { 
+                                // Expected: COM session may already be dead or disconnected.
+                            }
                             _sessionEventClients.Remove(deadId);
                         }
                         _sessionControls.Remove(deadId);
@@ -200,21 +219,30 @@ public sealed class AudioService : IAudioService
             var id = session.GetSessionInstanceIdentifier;
             if (!string.IsNullOrEmpty(id)) return id;
         }
-        catch { }
+        catch
+        {
+            // Expected: COM session may be invalid or terminating during identifier retrieval.
+        }
 
         try
         {
             var id = session.GetSessionIdentifier;
             if (!string.IsNullOrEmpty(id)) return id;
         }
-        catch { }
+        catch
+        {
+            // Expected: COM session may not support identifier interface or is closing.
+        }
 
         try
         {
             var pid = session.GetProcessID;
             if (pid != 0) return $"PID_{pid}_{session.GetHashCode()}";
         }
-        catch { }
+        catch
+        {
+            // Expected: COM session process ID retrieval may fail if process already exited.
+        }
 
         return string.Empty;
     }
@@ -340,6 +368,7 @@ public sealed class AudioService : IAudioService
         }
         catch
         {
+            // Expected: session may have been closed or detached by the target application.
             return 0;
         }
     }
@@ -352,6 +381,7 @@ public sealed class AudioService : IAudioService
         }
         catch
         {
+            // Expected: session may have terminated before reading volume.
             return 1.0f;
         }
     }
@@ -364,6 +394,7 @@ public sealed class AudioService : IAudioService
         }
         catch
         {
+            // Expected: session may have terminated before reading mute state.
             return false;
         }
     }
@@ -580,7 +611,14 @@ public sealed class AudioService : IAudioService
             {
                 if (_sessionEventClients.TryGetValue(sessionId, out var client))
                 {
-                    try { control.UnRegisterEventClient(client); } catch { }
+                    try 
+                    { 
+                        control.UnRegisterEventClient(client); 
+                    } 
+                    catch 
+                    { 
+                        // Expected: control or client may already be disconnected/invalidated.
+                    }
                     _sessionEventClients.Remove(sessionId);
                 }
                 _sessionControls.Remove(sessionId);
@@ -617,12 +655,19 @@ public sealed class AudioService : IAudioService
                 {
                     _deviceEnumerator.UnregisterEndpointNotificationCallback(_deviceNotification);
                 }
-                catch { }
+                catch
+                {
+                    // Expected: callback unregister may throw if COM endpoint is already gone.
+                }
+
                 try
                 {
                     _deviceEnumerator.Dispose();
                 }
-                catch { }
+                catch
+                {
+                    // Expected: device enumerator may fail during disposal on runtime shutdown.
+                }
                 _deviceEnumerator = null;
             }
         }

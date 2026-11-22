@@ -134,13 +134,21 @@ public sealed class AudioCaptureService : IAudioCaptureService
                 _capture.RecordingStopped -= OnRecordingStopped;
                 _capture.StopRecording();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // Expected: WASAPI capture device may already be stopped or invalidated (e.g. unplugged).
+                App.Log($"[AudioCaptureService] StopRecording notice: {ex.Message}");
+            }
 
             try
             {
                 _capture.Dispose();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // Expected: COM resources may throw during disposal if audio endpoint became invalid.
+                App.Log($"[AudioCaptureService] Capture dispose notice: {ex.Message}");
+            }
 
             _capture = null;
         }
@@ -295,7 +303,11 @@ public sealed class AudioCaptureService : IAudioCaptureService
                     _deviceEnumerator.UnregisterEndpointNotificationCallback(_notificationClient);
                     _deviceEnumerator.Dispose();
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    // Expected: COM endpoint enumerator may already be released or invalidated on shutdown.
+                    App.Log($"[AudioCaptureService] Enumerator cleanup notice: {ex.Message}");
+                }
                 _deviceEnumerator = null;
             }
         }

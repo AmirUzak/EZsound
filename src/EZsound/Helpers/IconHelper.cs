@@ -99,8 +99,10 @@ public static class IconHelper
             drawingImage.Freeze();
             _defaultIcon = drawingImage;
         }
-        catch
+        catch (Exception ex)
         {
+            // Fallback: geometry parsing or brush creation failed
+            App.Log($"[IconHelper] Failed to create default icon geometry: {ex.Message}");
             _defaultIcon = null;
         }
 

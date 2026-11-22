@@ -124,7 +124,11 @@ public sealed class TrayIconService : ITrayIconService
                 return new Icon(icoPath, 32, 32);
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            // Expected: ExtractAssociatedIcon or icon loading may fail in unit test or headless environments.
+            App.Log($"[TrayIconService] Could not load embedded icon, using fallback: {ex.Message}");
+        }
 
         // Fallback procedural icon
         using var bmp = new Bitmap(32, 32);

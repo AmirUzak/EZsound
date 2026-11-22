@@ -71,9 +71,10 @@ public static class ProcessHelper
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore
+            // Expected: process may have exited or access denied for elevated/system processes.
+            App.Log($"[ProcessHelper] Could not read path for PID {processId}: {ex.Message}");
         }
 
         return string.Empty;
@@ -95,7 +96,10 @@ public static class ProcessHelper
                 return name;
             }
         }
-        catch { }
+        catch (ArgumentException)
+        {
+            // Expected: process has already terminated by the time we query it.
+        }
 
         if (!string.IsNullOrEmpty(fallbackPath))
         {
@@ -107,7 +111,10 @@ public static class ProcessHelper
                     return name;
                 }
             }
-            catch { }
+            catch (ArgumentException)
+            {
+                // Expected: fallback path may contain invalid path characters from raw session titles.
+            }
         }
 
         return string.Empty;

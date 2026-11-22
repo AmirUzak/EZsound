@@ -33,7 +33,10 @@ public partial class App : System.Windows.Application
             }
             System.IO.File.AppendAllText(LogFile, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}{Environment.NewLine}");
         }
-        catch { }
+        catch
+        {
+            // Intentionally suppressed: failure in logging must never crash the host application.
+        }
     }
 
     protected override void OnStartup(StartupEventArgs e)
