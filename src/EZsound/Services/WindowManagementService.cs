@@ -12,6 +12,7 @@ public sealed class WindowManagementService : IWindowManagementService
     private readonly MainViewModel _mainViewModel;
     private readonly OverlayViewModel _overlayViewModel;
     private readonly OverlayWindow _overlayWindow;
+    private readonly System.Windows.Threading.DispatcherTimer _saveDebounceTimer;
     private MainWindow? _mainWindow;
     private bool _disposed;
 
@@ -23,6 +24,16 @@ public sealed class WindowManagementService : IWindowManagementService
         _settings = settings;
         _mainViewModel = mainViewModel;
         _overlayViewModel = overlayViewModel;
+
+        _saveDebounceTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(500)
+        };
+        _saveDebounceTimer.Tick += (_, _) =>
+        {
+            _saveDebounceTimer.Stop();
+            _settings.Save();
+        };
 
         _overlayWindow = new OverlayWindow(_overlayViewModel);
         _overlayWindow.PositionChanged += OverlayWindow_PositionChanged;
@@ -38,6 +49,10 @@ public sealed class WindowManagementService : IWindowManagementService
 
     public void HideOverlay()
     {
+        _saveDebounceTimer.Stop();
+        _settings.OverlayLeft = _overlayWindow.Left;
+        _settings.OverlayTop = _overlayWindow.Top;
+        _settings.Save();
         _overlayWindow.SmoothHide();
     }
 
@@ -140,11 +155,16 @@ public sealed class WindowManagementService : IWindowManagementService
     {
         _settings.OverlayLeft = _overlayWindow.Left;
         _settings.OverlayTop = _overlayWindow.Top;
-        _settings.Save();
+
+        // Debounce disk writes while the user is actively dragging the window
+        _saveDebounceTimer.Stop();
+        _saveDebounceTimer.Start();
     }
 
     public void Shutdown()
     {
+        _saveDebounceTimer.Stop();
+        _settings.Save();
         _overlayWindow.ForceClose();
         _mainWindow?.ForceClose();
 
@@ -156,6 +176,7 @@ public sealed class WindowManagementService : IWindowManagementService
         if (_disposed) return;
         _disposed = true;
 
+        _saveDebounceTimer.Stop();
         _overlayWindow.PositionChanged -= OverlayWindow_PositionChanged;
         _overlayWindow.ForceClose();
         _mainWindow?.ForceClose();
