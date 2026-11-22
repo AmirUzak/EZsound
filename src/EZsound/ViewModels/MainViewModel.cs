@@ -207,6 +207,7 @@ public class MainViewModel : BaseViewModel, IDisposable
         }
         catch (Exception ex)
         {
+            App.Log($"[MainViewModel] Error refreshing sessions: {ex.Message}");
             Debug.WriteLine($"[EZsound] Error refreshing sessions: {ex.Message}");
             StatusText = "Error refreshing sessions";
         }

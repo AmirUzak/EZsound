@@ -49,6 +49,7 @@ public class AppSettings
         }
         catch (Exception ex)
         {
+            App.Log($"[AppSettings] Error loading settings: {ex.Message}");
             System.Diagnostics.Debug.WriteLine($"[EZsound] Error loading settings: {ex.Message}");
         }
 
@@ -69,6 +70,7 @@ public class AppSettings
         }
         catch (Exception ex)
         {
+            App.Log($"[AppSettings] Error saving settings: {ex.Message}");
             System.Diagnostics.Debug.WriteLine($"[EZsound] Error saving settings: {ex.Message}");
         }
     }

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Windows;
 using EZsound.Models;
 using EZsound.ViewModels;
